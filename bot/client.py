@@ -7,6 +7,35 @@ import config
 # Fix Pyrogram bug for modern Telegram Channel/Supergroup IDs (e.g. -1003...)
 pyrogram.utils.MIN_CHANNEL_ID = -1009999999999999
 
+# Fix Pyrogram hardcoded DC 2 issue for modern bots registered on DC 5 (Asia)
+from pyrogram.session import Auth, Session
+_orig_load_session = Client.load_session
+
+async def _patched_load_session(self):
+    await self.storage.open()
+    session_empty = any([
+        await self.storage.test_mode() is None,
+        await self.storage.auth_key() is None,
+        await self.storage.user_id() is None,
+        await self.storage.is_bot() is None
+    ])
+    if session_empty:
+        await self.storage.api_id(self.api_id)
+        # Modern bot accounts default to DC 5
+        await self.storage.dc_id(5)
+        await self.storage.date(0)
+        await self.storage.test_mode(self.test_mode)
+        await self.storage.auth_key(
+            await Auth(self, await self.storage.dc_id(), await self.storage.test_mode()).create()
+        )
+    self.session = Session(
+        self, await self.storage.dc_id(),
+        await self.storage.auth_key(), await self.storage.test_mode()
+    )
+    await self.session.start()
+
+Client.load_session = _patched_load_session
+
 # Fix PyTgCalls compatibility with Pyrogram v2
 if not hasattr(pyrogram.errors, "GroupcallForbidden"):
     class GroupcallForbidden(pyrogram.errors.RPCError):
