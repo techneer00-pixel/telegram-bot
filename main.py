@@ -128,6 +128,25 @@ async def main():
         site = web.TCPSite(runner, "0.0.0.0", port)
         await site.start()
         logger.info(f"🌐 Cloud health server listening on port {port}")
+
+        # Automatic keep-alive task for Render (prevents 15-minute spin down)
+        async def render_keep_alive():
+            render_url = os.environ.get("RENDER_EXTERNAL_URL")
+            if not render_url:
+                return
+            logger.info(f"🔁 Auto keep-alive enabled for {render_url}")
+            await asyncio.sleep(60)
+            while True:
+                try:
+                    import aiohttp
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(f"{render_url}/health", timeout=10) as resp:
+                            logger.info(f"🔔 Keep-alive ping sent ({resp.status})")
+                except Exception as ex:
+                    logger.debug(f"Keep-alive ping error: {ex}")
+                await asyncio.sleep(600)  # Ping every 10 minutes
+
+        asyncio.create_task(render_keep_alive())
     except Exception as e:
         logger.warning(f"Could not start cloud health server: {e}")
 
