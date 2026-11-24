@@ -56,8 +56,18 @@ async def main():
     except Exception:
         pass
 
-    # Start main Telegram Bot
-    await bot.start()
+    # Start main Telegram Bot with retry for temporary Telegram server hiccups (RPC 500)
+    for attempt in range(1, 6):
+        try:
+            await bot.start()
+            break
+        except Exception as e:
+            if attempt == 5:
+                logger.error(f"Failed to start bot after 5 attempts: {e}")
+                raise
+            logger.warning(f"Telegram connection attempt {attempt} failed ({e}). Retrying in 4 seconds...")
+            await asyncio.sleep(4)
+
     bot_info = await bot.get_me()
     total_handlers = sum(len(h) for h in bot.dispatcher.groups.values())
     logger.info(f"✅ Bot started successfully as @{bot_info.username} (ID: {bot_info.id}) [{total_handlers} handlers active]")
@@ -65,7 +75,15 @@ async def main():
     # Start Assistant & PyTgCalls if configured
     if client.assistant is not None:
         try:
-            await client.assistant.start()
+            for attempt in range(1, 6):
+                try:
+                    await client.assistant.start()
+                    break
+                except Exception as e:
+                    if attempt == 5:
+                        raise
+                    logger.warning(f"Assistant connection attempt {attempt} failed ({e}). Retrying in 4 seconds...")
+                    await asyncio.sleep(4)
             assistant_info = await client.assistant.get_me()
             logger.info(
                 f"✅ Assistant Userbot started as @{assistant_info.username or assistant_info.first_name} (ID: {assistant_info.id})"

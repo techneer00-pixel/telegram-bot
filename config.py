@@ -10,13 +10,13 @@ DOWNLOAD_DIR = BASE_DIR / "downloads"
 DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # Credentials
-API_ID = int(os.getenv("API_ID", "0"))
-API_HASH = os.getenv("API_HASH", "")
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
-SESSION_STRING = os.getenv("SESSION_STRING", "").strip()
+API_ID = int(os.getenv("API_ID", "0").strip().strip('"').strip("'"))
+API_HASH = os.getenv("API_HASH", "").strip().strip('"').strip("'")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip().strip('"').strip("'")
+SESSION_STRING = os.getenv("SESSION_STRING", "").strip().strip('"').strip("'")
 
 # Admin & Owner
-OWNER_ID = int(os.getenv("OWNER_ID", "0"))
+OWNER_ID = int(os.getenv("OWNER_ID", "0").strip().strip('"').strip("'"))
 
 # Bot Details
 BOT_NAME = os.getenv("BOT_NAME", "HarmoniX")
